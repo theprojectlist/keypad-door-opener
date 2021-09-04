@@ -1,0 +1,6 @@
+[submodule "lib/AccelStepper"]
+	path = lib/AccelStepper
+	url = git@github.com:waspinator/AccelStepper.git
+[submodule "lib/Keypad"]
+	path = lib/Keypad
+	url = git@github.com:Chris--A/Keypad.git
