@@ -25,9 +25,6 @@ void home() {
     stepper.moveTo(-200);
     stepper.runToPosition();
 
-//    while (1)
-//        Serial.println(digitalRead(PIN_LIMIT_SWITCH));
-
     while (!digitalRead(PIN_LIMIT_SWITCH)) {
         stepper.moveTo(stepper.currentPosition() + 1);
         stepper.runToPosition();
