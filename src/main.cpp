@@ -1,31 +1,11 @@
-#include <AccelStepper.h>
-#include <Keypad.h>
-#include <Arduino.h>
+#include <main.hpp>
 
-// Set for serial printing
-#define DEBUG true
-
-const char password[] = "ABC123";
+// Declare external variables
+long home_pos = 0;
+const char password[] = "*";
 size_t password_len = 0;  // Set in setup()
-
 unsigned long num_entered = 0;
 bool correct = true;
-
-#define ROWS 4
-#define COLS 4
-
-#define PIN_STEP 2
-#define PIN_DIRECTION 3
-
-#define PIN_ROW_1 5
-#define PIN_ROW_2 6
-#define PIN_ROW_3 7
-#define PIN_ROW_4 8
-#define PIN_COL_1 9
-#define PIN_COL_2 10
-#define PIN_COL_3 11
-#define PIN_COL_4 12
-
 char hexaKeys[ROWS][COLS] = {
         {'1', '2', '3', 'A'},
         {'4', '5', '6', 'B'},
@@ -36,18 +16,37 @@ char hexaKeys[ROWS][COLS] = {
 byte rowPins[ROWS] = {PIN_ROW_1, PIN_ROW_2, PIN_ROW_3, PIN_ROW_4};
 byte colPins[COLS] = {PIN_COL_1, PIN_COL_2, PIN_COL_3, PIN_COL_4};
 
-Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS,
+                             COLS);
 AccelStepper stepper = AccelStepper(1, PIN_STEP, PIN_DIRECTION);
+
+void home() {
+    // Move back a little
+    stepper.moveTo(-200);
+    stepper.runToPosition();
+
+//    while (1)
+//        Serial.println(digitalRead(PIN_LIMIT_SWITCH));
+
+    while (!digitalRead(PIN_LIMIT_SWITCH)) {
+        stepper.moveTo(stepper.currentPosition() + 1);
+        stepper.runToPosition();
+    }
+
+    home_pos = stepper.currentPosition();
+}
 
 void unlock() {
 #if DEBUG
     Serial.println("Unlocking...");
 #endif
-    stepper.moveTo(1000);
+
+    stepper.moveTo(home_pos - STEPPER_OPEN_CLOSE_DIST_TRAVEL);
     stepper.runToPosition();
-    delay(1000);
-    stepper.moveTo(0);
+    delay(MILLIS_HOLD_DOOR_OPEN_FOR);
+    stepper.moveTo(home_pos);
     stepper.runToPosition();
+
 #if DEBUG
     Serial.println("Locked\n");
 #endif
@@ -62,16 +61,19 @@ void setup() {
 
     pinMode(PIN_STEP, OUTPUT);
     pinMode(PIN_DIRECTION, OUTPUT);
+    pinMode(PIN_LIMIT_SWITCH, INPUT_PULLUP);
 
-    stepper.setMaxSpeed(8000);
-    stepper.setAcceleration(10000);
-    stepper.moveTo(1000);
+    stepper.setAcceleration(STEPPER_HOME_ACCEL);
+    stepper.setMaxSpeed(STEPPER_HOME_SPEED);
+    home();
+    stepper.setAcceleration(STEPPER_OPEN_CLOSE_ACCEL);
+    stepper.setMaxSpeed(STEPPER_OPEN_CLOSE_SPEED);
 }
 
 void loop() {
     char input = customKeypad.getKey();
 
-    if (!input){
+    if (!input) {
         return;
     } else {
 #ifdef DEBUG
